@@ -1,0 +1,35 @@
+# Core FastAPI dependencies
+fastapi
+uvicorn[standard]
+
+# ORM + MySQL
+sqlalchemy>=2.0
+pymysql
+
+# Environment handling
+python-dotenv
+
+# OpenAI API
+openai
+
+# Optional: for structured validation
+pydantic>=2.0
+
+# YouTube & HTTP
+requests
+
+# If you ever want background tasks or scheduling (future-proofing)
+httpx
+
+# Optional (if you use Alembic for DB migrations)
+alembic
+
+# Optional: Posture/Video analysis tools (if added later)
+opencv-python
+mediapipe
+
+schemas
+dependencies
+
+python-multipart
+Pillow
