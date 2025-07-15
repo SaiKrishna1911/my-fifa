@@ -5,7 +5,6 @@ A FastAPI-based intelligent gym assistant that helps users with:
 - 📚 Structured workouts
 - 🍱 Meal suggestions
 - 💬 Conversational fitness coaching
-- 🎥 Posture validation (in progress)
 - 📸 Food image → nutrition estimation (experimental)
 
 ---
@@ -30,6 +29,10 @@ A FastAPI-based intelligent gym assistant that helps users with:
 - YouTube API (for video lookup)
 
 ---
+
+## Future plans
+- Voice chat capability
+- Posture Validation
 
 ## 🧪 Running Locally
 
