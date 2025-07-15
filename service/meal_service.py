@@ -12,7 +12,6 @@ def suggest_meals(
         gender: Optional[str] = None,
         allergies: Optional[List[str]] = None
 ):
-    print("Suggest Meals")
     prompt = f"""
 You're a fitness-focused meal planner. Suggest 2-3 **high-protein meals** tailored for someone with the following profile:
 

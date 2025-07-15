@@ -12,7 +12,6 @@ YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v={vid}"
 
 
 def find_exercise(body_part: Optional[str] = None, exercise_name: Optional[str] = None, equipment: Optional[str] = None) -> Dict[str, Any]:
-    print("Find Exercise")
     if exercise_name:
         query = exercise_name
     elif body_part:
@@ -22,7 +21,13 @@ def find_exercise(body_part: Optional[str] = None, exercise_name: Optional[str] 
 
     clip = fetch_youtube_clip(query)
     if not clip:
-        raise HTTPException(404, f"No YouTube video found for: {query}")
+        return {
+            "name": exercise_name or f"{body_part.title()} Exercise",
+            "video_url": None,
+            "primary_muscles": [body_part.lower()] if body_part else [],
+            "equipment": equipment or "body weight",
+            "msg": f"Could not find a video for '{query}' right now. Try a different term?"
+        }
 
     return {
         "name": exercise_name or f"{body_part.title()} Exercise",
@@ -38,6 +43,8 @@ def fetch_youtube_clip(query: str) -> Optional[str]:
         "part": "snippet", "q": query, "type": "video", "videoDuration": "short",
         "key": YOUTUBE_API_KEY, "maxResults": 3, "safeSearch": "strict"
     }
+    print("Querying YouTube API:", YOUTUBE_SEARCH_URL)
+    print("Params:", params)
     r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=15)
     if r.status_code != 200:
         return None
