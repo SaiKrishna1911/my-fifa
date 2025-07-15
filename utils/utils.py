@@ -30,7 +30,11 @@ def run_with_tools(messages: List[Dict[str, Any]], max_iters: int = 3):
         messages.append(msg)
 
         if not assistant_msg.tool_calls:
-            return assistant_msg
+            try:
+                structured = json.loads(assistant_msg.content.strip())
+                return {"structured": structured}
+            except json.JSONDecodeError:
+                return {"text": assistant_msg.content.strip()}
 
         for call in assistant_msg.tool_calls:
             name = call.function.name
@@ -47,6 +51,7 @@ def run_with_tools(messages: List[Dict[str, Any]], max_iters: int = 3):
                 "tool_call_id": call.id,
                 "content": json.dumps(result),
             })
+
     raise HTTPException(500, "GPT never returned a final message")
 
 def is_exit_message(message: str) -> str:

@@ -1,11 +1,11 @@
 import os
 from http.client import HTTPException
 from typing import Optional, Dict, Any
-
-from fastapi import requests
-
+from dotenv import load_dotenv
 from constants.body_parts import BODY_PART_MAP
+import requests
 
+load_dotenv()
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v={vid}"
@@ -41,10 +41,8 @@ def fetch_youtube_clip(query: str) -> Optional[str]:
         return None
     params = {
         "part": "snippet", "q": query, "type": "video", "videoDuration": "short",
-        "key": YOUTUBE_API_KEY, "maxResults": 3, "safeSearch": "strict"
+        "key": YOUTUBE_API_KEY, "maxResults": 3, "safeSearch": "strict", "relevanceLanguage": "en"
     }
-    print("Querying YouTube API:", YOUTUBE_SEARCH_URL)
-    print("Params:", params)
     r = requests.get(YOUTUBE_SEARCH_URL, params=params, timeout=15)
     if r.status_code != 200:
         return None
