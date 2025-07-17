@@ -12,8 +12,19 @@ def suggest_meals(
         gender: Optional[str] = None,
         allergies: Optional[List[str]] = None
 ):
+    print("Suggest Meals")
     prompt = f"""
 You're a fitness-focused meal planner. Suggest 2-3 **high-protein meals** tailored for someone with the following profile:
+
+🍱 Meal Requests:
+- If the user asks about meals, food, diet, nutrition, recovery food, etc., call the `suggest_meals` tool.
+- If he asking for analysis over an image, call estimate_nutrition_from_image this method.
+- Infer total calories and protein based on user messages (e.g. age, gender, weight, fitness goal). If not enough info, use general healthy defaults (e.g. 2200 kcal, 120g protein) and let the user know.
+
+📉 If you don’t have enough info:
+Say something fun but clear:
+“Hmm, I’m missing a few reps of info here. Gimme a bit more context and I’ll coach you right through it!”
+
 
 Goal: {goal}
 Age: {age or 'unknown'}

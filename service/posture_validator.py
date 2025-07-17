@@ -1,7 +1,8 @@
 import base64
 import json
 import os
-from typing import List, Dict, Any, Optional, re
+from typing import List, Dict, Any, Optional
+import re
 
 import cv2
 import mediapipe as mp
@@ -62,7 +63,7 @@ def classify_exercise_from_frames(frames: List[np.ndarray], top_k: int = 3) -> s
 
 
 def _extract_keyframes(video_bytes: bytes, every_n: int = 6) -> List[np.ndarray]:
-    """Grab every N-th frame from the clip (returns BGR numpy arrays)."""
+    """Grab every N-th frame from the clip (returns BGR numpy arrays). Handles both video and GIF."""
     tmp = "/tmp/_clip.mp4"
     with open(tmp, "wb") as fh:
         fh.write(video_bytes)
@@ -70,19 +71,36 @@ def _extract_keyframes(video_bytes: bytes, every_n: int = 6) -> List[np.ndarray]
     # Ensure the output directory exists
     os.makedirs("/tmp/frames/", exist_ok=True)
 
+    frames = []
     cap = cv2.VideoCapture(tmp)
-    frames, idx = [], 0
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if idx % every_n == 0:
-            frames.append(frame)
-            # Save the frame as an image file
-            cv2.imwrite(f"/tmp/frames/frame_{idx:03d}.jpg", frame)
-        idx += 1
-    cap.release()
-    return frames
+    if cap.isOpened():
+        idx = 0
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if idx % every_n == 0:
+                frames.append(frame)
+                # Save the frame as an image file
+                cv2.imwrite(f"/tmp/frames/frame_{idx:03d}.jpg", frame)
+            idx += 1
+        cap.release()
+        return frames
+    else:
+        # Attempt to load as a GIF using PIL
+        try:
+            from PIL import Image, ImageSequence
+            pil_img = Image.open(tmp)
+            for i, frame in enumerate(ImageSequence.Iterator(pil_img)):
+                if i % every_n == 0:
+                    rgb_frame = frame.convert("RGB")
+                    np_frame = np.array(rgb_frame)
+                    bgr_frame = cv2.cvtColor(np_frame, cv2.COLOR_RGB2BGR)
+                    frames.append(bgr_frame)
+                    cv2.imwrite(f"/tmp/frames/frame_{i:03d}.jpg", bgr_frame)
+            return frames
+        except Exception as e:
+            raise RuntimeError(f"Failed to extract frames from video or GIF: {e}")
 
 
 def _angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
@@ -153,9 +171,63 @@ Return **JSON only**:
     )
     return resp.choices[0].message.content.strip()
 
+def _gpt_estimates(exercise: str, snapshots: List[Dict[str, float]]) -> Dict[str, Any]:
+    prompt = f"""
+You're a fitness assistant. Based on the user's exercise: **{exercise}**, and the following posture data (joint angles per frame), estimate:
+
+- How many reps were performed?
+- Approximate calories burned?
+- Estimated peak heart rate during the set?
+
+Return **strict JSON** with this format only:
+{{
+  "repetitions": 0,
+  "calories_burned": 0.0,
+  "estimated_heart_rate": 0
+}}
+
+📹 🔥 VIDEO RULE (Important!):
+- If the user asks:  
+  - “How do I do ___?”  
+  - “Show me ___”  
+  - Or anything that implies they need help doing the exercise…  
+  👉 **Immediately respond with a helpful YouTube video link** to that exercise, no follow-up required.
+- You may describe it briefly, but **always include a valid video link** in that response.
+- U can always prompt the user to upload a video clip for duration 3-5 seconds and when he does redirect to the `validate_posture` method.
+- If the user uploads a video or mentions reviewing form, push-up quality, etc., you should decide whether to call the `validate_posture` tool with the clip and the relevant exercise.
+- Make sure to return `"exercise"` field with a canonical name like "push-up", "squat", etc., to help downstream posture analysis.
+- Estimate the number of reps performed if video is available and include that in `"reps"` key.
+- Also include `"calories_burned"` and `"estimated_heart_rate"` fields with approximate values based on video and context.
+
+Posture snapshots:
+{json.dumps(snapshots, indent=2)}
+"""
+    resp = sync_client.chat.completions.create(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": "You return only JSON, no explanations."},
+            {"role": "user", "content": prompt.strip()}
+        ]
+    )
+    return json.loads(resp.choices[0].message.content.strip())
 
 def validate_posture(exercise: str, video_b64: str) -> Dict[str, Any]:
-    video_bytes = base64.b64decode(video_b64)
+    # Handle raw filename fallback (GIF, etc.)
+    if video_b64.strip().lower() not in ("<user_file>", "<file_bytes>") and not video_b64.strip().startswith(("data:", "base64,", "/9j", "iVB", "AAAA")) and not re.match(r"^[A-Za-z0-9+/=]+$", video_b64.strip()):
+        print("Treating input as a local filename:", video_b64)
+        try:
+            with open(video_b64.strip(), "rb") as fh:
+                video_bytes = fh.read()
+        except FileNotFoundError:
+            return {
+                "ok": False,
+                "exercise": exercise,
+                "summary": f"Could not find uploaded file: '{video_b64.strip()}'"
+            }
+    else:
+        # Add padding if necessary to base64 string before decoding
+        video_b64 += '=' * (-len(video_b64) % 4)
+        video_bytes = base64.b64decode(video_b64)
     frames = _extract_keyframes(video_bytes)
 
     # Step 1: Visual classification of exercise from frames
@@ -179,8 +251,14 @@ def validate_posture(exercise: str, video_b64: str) -> Dict[str, Any]:
             "summary": "No landmarks detected. Try a clearer, full-body clip."
         }
 
+    fitness_stats = _gpt_estimates(exercise, snapshots)
+
     raw_json = _gpt_feedback(exercise, snapshots)
     try:
-        return json.loads(raw_json)
+        result = json.loads(raw_json)
+        result.update(fitness_stats)
+        return result
     except Exception:
-        return {"ok": True, "exercise": exercise, "angles": snapshots, "feedback": raw_json}
+        result = {"ok": True, "exercise": exercise, "angles": snapshots, "feedback": raw_json}
+        result.update(fitness_stats)
+        return result

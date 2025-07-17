@@ -35,6 +35,12 @@ if __name__ == "__main__":
             print(f"{result}")
             break
         chat_history.append({"role": "user", "content": user})
-        reply = run_with_tools([{"role": "system", "content": SYSTEM_PROMPT}] + chat_history).content.strip()
+        reply_dict = run_with_tools([{"role": "system", "content": SYSTEM_PROMPT}] + chat_history)
+        try:
+            reply = reply_dict["choices"][0]["message"]["content"].strip()
+        except (KeyError, IndexError, TypeError):
+            print("❌ Unexpected response from OpenAI. Full response:")
+            print(reply_dict)
+            reply = "Oops, I couldn’t come up with a suggestion. Try rephrasing or asking something else?"
         chat_history.append({"role": "assistant", "content": reply})
         print("Coach:", reply)

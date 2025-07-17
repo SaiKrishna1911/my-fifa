@@ -39,23 +39,33 @@ TOOL_SCHEMAS = [
         },
     },
 {
-        "type": "function",
-        "function": {
-            "name": "validate_posture",
-            "description": "Validates user's exercise posture from a video clip.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "exercise": {"type": "string"},
-                    "video_b64": {"type": "string"},
-                    "engine": {
-                        "type": "string",
-                        "enum": ["mediapipe", "yolov8"],
-                        "default": "mediapipe"
-                    }
+    "type": "function",
+    "function": {
+        "name": "validate_posture",
+        "description": (
+            "Analyze the user's exercise form from an uploaded video. "
+            "Use this tool when the user asks to check their posture, form, or exercise correctness."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "exercise": {
+                    "type": "string",
+                    "description": "The name of the exercise being performed (e.g., 'push-up', 'squat')."
                 },
-                "required": ["exercise", "video_b64"]
-            }
+                "video_b64": {
+                    "type": "string",
+                    "description": "Base64-encoded string of the uploaded video clip."
+                },
+                "engine": {
+                    "type": "string",
+                    "enum": ["mediapipe", "yolov8"],
+                    "default": "mediapipe",
+                    "description": "Which backend engine to use for posture validation."
+                }
+            },
+            "required": ["exercise", "video_b64"]
         }
     }
+}
 ]
