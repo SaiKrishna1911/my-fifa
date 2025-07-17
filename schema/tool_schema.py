@@ -38,4 +38,24 @@ TOOL_SCHEMAS = [
             },
         },
     },
+{
+        "type": "function",
+        "function": {
+            "name": "validate_posture",
+            "description": "Validates user's exercise posture from a video clip.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "exercise": {"type": "string"},
+                    "video_b64": {"type": "string"},
+                    "engine": {
+                        "type": "string",
+                        "enum": ["mediapipe", "yolov8"],
+                        "default": "mediapipe"
+                    }
+                },
+                "required": ["exercise", "video_b64"]
+            }
+        }
+    }
 ]

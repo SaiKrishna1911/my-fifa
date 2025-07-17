@@ -7,6 +7,7 @@ import json
 from schema.tool_schema import TOOL_SCHEMAS
 from service.exercise_service import find_exercise
 from service.meal_service import suggest_meals
+from service.posture_validator import validate_posture
 from utils.clients import sync_client
 
 
@@ -43,6 +44,8 @@ def run_with_tools(messages: List[Dict[str, Any]], max_iters: int = 3):
                 result = find_exercise(**args)
             elif name == "suggest_meals":
                 result = suggest_meals(**args)
+            elif name == "validate_posture":
+                result = validate_posture(**args)
             # elif name == "validate_posture":
             #     result = PostureValidator.analyse_clip(**args)
             messages.append({

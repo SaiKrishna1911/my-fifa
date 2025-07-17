@@ -33,3 +33,9 @@ dependencies
 
 python-multipart
 Pillow
+
+torch
+torchvision
+torchaudio
+transformers
+datasets
