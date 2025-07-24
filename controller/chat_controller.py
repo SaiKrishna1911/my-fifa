@@ -1,7 +1,11 @@
 import json
-from typing import Optional
+from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Depends, Query
+from sqlalchemy.orm import Session
+from schema.dependencies import get_db
+from entity.chats import ChatCreateUpdate, ChatResponse
+from service.chat_service import ChatService
 
 from constants.system_promt import SYSTEM_PROMPT
 from schema.chat_schema import ChatTurn
@@ -9,42 +13,31 @@ from utils.utils import run_with_tools, is_exit_message
 
 router = APIRouter()
 
+@router.post("/chats/", response_model=ChatResponse)
+def create_chat(data: ChatCreateUpdate, db: Session = Depends(get_db)):
+    chat = ChatService.create(db, data.dict())
+    return chat
+
+@router.get("/chats/", response_model=List[ChatResponse])
+def list_chats(user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
+    return ChatService.get_all(db, user_id)
+
+@router.get("/chats/{chat_id}", response_model=ChatResponse)
+def get_chat(chat_id: int, user_id: Optional[int] = Query(None), db: Session = Depends(get_db)):
+    chat = ChatService.get_by_id(db, chat_id, user_id)
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+    return chat
+
 @router.post("/coach/chat")
 def chat_turn(
+    user_id: int = Form(...),
     messages: str = Form(...),
-    file: Optional[UploadFile] = File(None)
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
 ):
     try:
-        messages_list = json.loads(messages)
-        for msg in messages_list:
-            if isinstance(msg.get("content"), dict):
-                # Flatten content dictionary into a plain string with note appended
-                text = msg["content"].get("text", "")
-                note = msg["content"].get("note", "")
-                msg["content"] = f"{text}\n\nNote: {note}" if note else text
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid messages format: {str(e)}")
-
-    convo = [{"role": "system", "content": SYSTEM_PROMPT}] + messages_list
-    if file:
-        convo.append({"role": "user", "content": f"[User uploaded file: {file.filename}]"})
-    final_result = run_with_tools(convo, file)
-
-    if isinstance(final_result, dict) and "structured" in final_result:
-        content_obj = final_result["structured"]
-        content_for_exit = json.dumps(content_obj, ensure_ascii=False)
-    elif isinstance(final_result, dict) and "text" in final_result:
-        content_obj = final_result["text"]
-        content_for_exit = content_obj
-    else:
-        content_obj = getattr(final_result, "content", "").strip()
-        content_for_exit = content_obj
-
-    exit_flag = is_exit_message(content_for_exit)
-    is_exit = exit_flag.lower() != "continue"
-
-    return {
-        "role": "system",
-        "content": content_obj,
-        "is_exit": is_exit
-    }
+        result = ChatService.handle_coach_chat(user_id=user_id, messages=messages, file=file, db=db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result

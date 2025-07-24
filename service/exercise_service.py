@@ -12,6 +12,7 @@ YOUTUBE_VIDEO_URL = "https://www.youtube.com/watch?v={vid}"
 
 
 def find_exercise(body_part: Optional[str] = None, exercise_name: Optional[str] = None, equipment: Optional[str] = None) -> Dict[str, Any]:
+    print("Find exercise")
     if exercise_name:
         query = exercise_name
     elif body_part:

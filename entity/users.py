@@ -4,11 +4,9 @@ from openai import BaseModel
 from sqlalchemy import Column, Integer, String, Float, Text
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
+from entity.base import Base
 
-from entity.base import AuditMixin, Base
-
-
-class User(Base, AuditMixin):
+class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
@@ -17,6 +15,7 @@ class User(Base, AuditMixin):
     status = Column(String(50))
     height_cm = Column(Float)
     weight_kg = Column(Float)
+    goal = Column(String(100), nullable=True)
     _allergies = Column("allergies", Text)
 
     def __init__(self, **kwargs):
@@ -33,9 +32,9 @@ class User(Base, AuditMixin):
     def allergies(self, value: list[str]):
         self._allergies = ",".join(value) if value else ""
 
-    conversations = relationship("Conversation", back_populates="user")
-    subscriptions = relationship("Subscription", back_populates="user")
-    meals = relationship("Meal", back_populates="user")
+    meal_plans = relationship("MealPlan", back_populates="user")
+    user_exercise_plans = relationship("UserExercisePlan", back_populates="user")
+    daily_plan_trackings = relationship("DailyPlanTracking", back_populates="user")
 
 class UserResponse(BaseModel):
     id: int
@@ -45,6 +44,7 @@ class UserResponse(BaseModel):
     weight_kg: float
     status: str
     allergies: Optional[list[str]] = []
+    goal: Optional[str] = None
 
     class Config:
         orm_mode = True

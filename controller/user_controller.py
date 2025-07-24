@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
@@ -16,6 +16,7 @@ class UserCreateUpdate(BaseModel):
     weight_kg: float
     status: str
     allergies: List[str] = []
+    goal: Optional[str] = None
 
 
 @router.post("/users", response_model=UserResponse)
