@@ -108,4 +108,5 @@ Return a structured JSON response in bullet points, don't be soo sure on facts, 
             print(f"[DEBUG] Food event logged from food_vision_service for user_id={user_id}, date={log_date}")
         except Exception as e:
             print(f"[ERROR] Exception in food_vision_service logging: {e}")
-    return result
+    import json
+    return json.loads(result)

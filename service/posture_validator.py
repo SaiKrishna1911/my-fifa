@@ -181,7 +181,7 @@ You're a fitness assistant. Based on the user's exercise: **{exercise}**, and th
 
 Return **strict JSON** with this format only:
 {{
-  "repetitions": 0,
+  "reps": 0,
   "calories_burned": 0.0,
   "estimated_heart_rate": 0
 }}
@@ -252,13 +252,17 @@ def validate_posture(exercise: str, video_b64: str) -> Dict[str, Any]:
         }
 
     fitness_stats = _gpt_estimates(exercise, snapshots)
-
     raw_json = _gpt_feedback(exercise, snapshots)
     try:
         result = json.loads(raw_json)
         result.update(fitness_stats)
-        return result
     except Exception:
-        result = {"ok": True, "exercise": exercise, "angles": snapshots, "feedback": raw_json}
+        result = {
+            "ok": True,
+            "exercise": exercise,
+            "angles": snapshots,
+            "feedback": raw_json,
+        }
         result.update(fitness_stats)
-        return result
+    # Instead of returning here, just return the full detailed result dictionary
+    return result

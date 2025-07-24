@@ -72,3 +72,31 @@ class DailyPlanTrackingService:
         db.commit()
         db.refresh(tracking)
         return tracking
+
+    @staticmethod
+    def get_today_summary(db: Session, user_id: int):
+        from datetime import date as dt_date
+        today = dt_date.today()
+        tracking_entries = db.query(DailyPlanTracking).filter(
+            DailyPlanTracking.user_id == user_id,
+            DailyPlanTracking.date == today
+        ).all()
+
+        if not tracking_entries:
+            return None
+
+        summaries = []
+        for tracking in tracking_entries:
+            summaries.append({
+                "exercise_summary": tracking.exercise_summary,
+                "meals_logged": tracking.meals_logged,
+                "meal_summary": tracking.meal_summary,
+                "calories_burned": tracking.calories_burned,
+                "calories_intake": tracking.calories_intake,
+                "protein": tracking.protein,
+                "carbohydrates": tracking.carbohydrates,
+                "fat": tracking.fat,
+                "fiber": tracking.fiber,
+                "reps_done": tracking.reps_done
+            })
+        return summaries

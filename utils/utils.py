@@ -61,32 +61,35 @@ def run_with_tools(messages: List[Dict[str, Any]], file: Optional[Any] = None, m
                 result = find_exercise(**args)
             elif name == "suggest_meals":
                 result = suggest_meals(**args)
+                last_user_msg = next((m for m in reversed(messages) if m["role"] == "user"), {})
+                recommend_supp = any(
+                    kw in last_user_msg.get("content", "").lower()
+                    for kw in ["supplement", "whey", "creatine", "multivitamin", "protein powder"]
+                )
+                return {
+                    "structured": {
+                        "meals": result,
+                        "text": "Here are some meal ideas! 🍽️ Want supplement recommendations too?",
+                        "recommend_supplement": recommend_supp
+                    }
+                }
+
             elif name == "validate_posture":
                 if "video_b64" in args and file:
                     import base64
                     file_content = base64.b64encode(file.file.read()).decode()
                     file.file.seek(0)
                     args["video_b64"] = file_content
+                # Remove unexpected 'engine' argument if present
+                args.pop("engine", None)
                 result = validate_posture(**args)
-                # Log exercise event
-                if db and uid:
-                    try:
-                        calories_burned = result.get("calories_burned") or 0
-                        reps = result.get("repetitions") or result.get("reps") or 0
-                        summary = result.get("summary") or result.get("text") or str(result)
-                        protein = result.get("protein") or 0
-                        carbohydrates = result.get("carbohydrates") or 0
-                        fat = result.get("fat") or 0
-                        fiber = result.get("fiber") or 0
-                        DailyPlanTrackingService.log_exercise_event(
-                            db, uid, today, summary, calories_burned, reps,
-                            protein=protein,
-                            carbohydrates=carbohydrates,
-                            fat=fat,
-                            fiber=fiber
-                        )
-                    except Exception:
-                        pass
+                # Ask the user how long they did the exercise
+                return {
+                    "structured": {
+                        **result,
+                        "text": "Got your posture feedback! 💪 How long did you do push-ups for (in minutes)? I can log it for you!"
+                    }
+                }
             elif name == "estimate_nutrition_from_image":
                 if "image_b64" in args and file:
                     import base64
@@ -111,6 +114,23 @@ def run_with_tools(messages: List[Dict[str, Any]], file: Optional[Any] = None, m
                         )
                     except Exception as e:
                         print(f"[ERROR] Failed to log exercise event: {e}")
+            elif name == "log_food_event":
+                if db and uid:
+                    try:
+                        print("ARGS", args)
+                        DailyPlanTrackingService.log_food_event(
+                            db=db,
+                            user_id=uid,
+                            date=args.get("date"),
+                            food_summary=args.get("summary", "Food"),
+                            calories=args.get("calories", 0),
+                            protein=args.get("protein", 0),
+                            carbohydrates=args.get("carbohydrates", 0),
+                            fat=args.get("fat", 0),
+                            fiber=args.get("fiber", 0)
+                        )
+                    except Exception as e:
+                        print(f"[ERROR] Failed to log food event: {e}")
             result = {}
             messages.append({
                 "role": "tool",

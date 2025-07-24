@@ -96,7 +96,7 @@ TOOL_SCHEMAS = [
 {
     "type": "function",
     "function": {
-        "name": "log_food_consumption",
+        "name": "log_food_event",
         "description": "Log a food consumption event to the user's daily plan tracking after user confirms they ate the food. Use after nutrition estimate is shown and user says yes.",
         "parameters": {
             "type": "object",
@@ -145,6 +145,48 @@ TOOL_SCHEMAS = [
                 }
             },
             "required": ["user_id", "date", "summary"]
+        }
+    }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "prescribe_suppliment",
+        "description": "Suggest supplements based on user’s goal, lifestyle, and possible deficiencies. Include dosage and timing if relevant.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "goal": {"type": ["string", "null"]},
+                "age": {"type": ["integer", "null"]},
+                "gender": {"type": ["string", "null"]},
+                "activity_level": {"type": ["string", "null"], "description": "e.g., sedentary, active, athlete"},
+                "known_deficiencies": {
+                    "type": ["array", "null"],
+                    "items": {"type": "string"},
+                    "description": "Any known nutrient deficiencies (e.g., Vitamin D, Iron)"
+                }
+            }
+        }
+    }
+},
+{
+    "type": "function",
+    "function": {
+        "name": "generate_fitness_journal",
+        "description": "Generate a journal entry summarizing the user's workouts, meals, form feedback, and mood for the day.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "user_id": {
+                    "type": "integer",
+                    "description": "User ID to fetch daily summary"
+                },
+                "date": {
+                    "type": "string",
+                    "description": "Date for which to generate the journal (YYYY-MM-DD)"
+                }
+            },
+            "required": ["user_id", "date"]
         }
     }
 }
